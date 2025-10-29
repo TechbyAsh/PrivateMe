@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "PrivateMe",
+    "slug": "privateme",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#6B46C1"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.privateme.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#6B46C1"
+      },
+      "package": "com.privateme.app"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "scheme": "privateme",
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
