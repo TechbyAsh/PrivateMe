@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, Text } from 'react-native';
 import { Colors } from '../../src/constants/theme';
 
 export default function TabsLayout() {
@@ -54,7 +54,7 @@ export default function TabsLayout() {
   );
 }
 
-// Simple icon component using emoji
+// Simple icon component using emoji - must use Text for React Native
 const TabIcon = ({ icon, color }: { icon: string; color: string }) => (
-  <span style={{ fontSize: 24 }}>{icon}</span>
+  <Text style={{ fontSize: 24, color }}>{icon}</Text>
 );
