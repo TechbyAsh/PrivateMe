@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,73 +6,63 @@ import {
   FlatList,
   TouchableOpacity,
   useColorScheme,
+  RefreshControl,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { NoteCard } from '../../src/components/NoteCard';
 import { Note } from '../../src/types';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../src/constants/theme';
-
-// Sample data for demonstration
-const SAMPLE_NOTES: Note[] = [
-  {
-    id: '1',
-    userId: 'user1',
-    title: 'Welcome to PrivateMe',
-    content: 'This is your first note! All your notes are stored securely and encrypted. Start writing your thoughts here.',
-    tags: ['welcome', 'tutorial'],
-    isPinned: true,
-    color: 'purple',
-    version: 1,
-    createdAt: new Date('2025-10-15'),
-    updatedAt: new Date('2025-10-17'),
-    syncStatus: 'synced',
-    isEncrypted: false,
-  },
-  {
-    id: '2',
-    userId: 'user1',
-    title: 'Shopping List',
-    content: 'Milk, Eggs, Bread, Coffee, Fruits, Vegetables',
-    tags: ['personal'],
-    isPinned: false,
-    color: 'green',
-    version: 1,
-    createdAt: new Date('2025-10-16'),
-    updatedAt: new Date('2025-10-16'),
-    syncStatus: 'synced',
-    isEncrypted: false,
-  },
-  {
-    id: '3',
-    userId: 'user1',
-    title: 'Project Ideas',
-    content: 'Build a mobile app for tracking habits. Create a personal finance dashboard. Learn machine learning basics.',
-    tags: ['work', 'ideas'],
-    isPinned: false,
-    color: 'blue',
-    version: 1,
-    createdAt: new Date('2025-10-14'),
-    updatedAt: new Date('2025-10-15'),
-    syncStatus: 'pending_sync',
-    isEncrypted: false,
-  },
-];
+import { storageService } from '../../src/services/storage';
+import { syncService } from '../../src/services/sync';
 
 export default function NotesScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
-  const [notes] = useState<Note[]>(SAMPLE_NOTES);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const userId = 'user-123';
+
+  useFocusEffect(
+    useCallback(() => {
+      loadNotes();
+    }, [])
+  );
+
+  const loadNotes = async () => {
+    try {
+      const allNotes = await storageService.getAllNotes();
+      const sortedNotes = allNotes.sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return b.updatedAt.getTime() - a.updatedAt.getTime();
+      });
+      setNotes(sortedNotes);
+    } catch (error) {
+      console.error('Failed to load notes:', error);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await syncService.syncAllPendingNotes(userId);
+      await loadNotes();
+    } catch (error) {
+      console.error('Failed to sync notes:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleNotePress = (noteId: string) => {
-    // TODO: Navigate to note editor
-    console.log('Open note:', noteId);
+    router.push(`/notes/${noteId}`);
   };
 
   const handleCreateNote = () => {
-    // TODO: Navigate to new note screen
-    console.log('Create new note');
+    router.push('/notes/new');
   };
 
   const renderEmptyState = () => (
@@ -99,6 +89,8 @@ export default function NotesScreen() {
           </Text>
           <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
             {notes.length} {notes.length === 1 ? 'note' : 'notes'}
+            {notes.filter(n => n.syncStatus === 'pending_sync').length > 0 && 
+              ` • ${notes.filter(n => n.syncStatus === 'pending_sync').length} pending sync`}
           </Text>
         </View>
         <TouchableOpacity style={styles.searchButton}>
@@ -119,6 +111,13 @@ export default function NotesScreen() {
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+          />
+        }
       />
 
       {/* Floating Action Button */}
